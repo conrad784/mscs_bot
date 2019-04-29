@@ -5,10 +5,13 @@ import os
 from threading import Thread
 import logging
 import subprocess
+from functools import wraps
 
 from telegram.ext import Updater
 from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler, Filters
+
+from secret import allowed_ids
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -16,7 +19,19 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 with open("token", "r") as fd:
     token = fd.readline().strip()
 
-allowed_ids = {"conrad784": "12467755"}
+LIST_OF_ADMINS = list(allowed_ids.values())
+logging.info("List of admins: {}".format(LIST_OF_ADMINS))
+
+def restricted(func):
+    @wraps(func)
+    def wrapped(update, context, *args, **kwargs):
+        user_id = context.effective_user.id
+        if user_id not in LIST_OF_ADMINS:
+            logger = logging.getLogger()
+            logger.info("Unauthorized access denied for {}.".format(user_id))
+            return
+        return func(update, context, *args, **kwargs)
+    return wrapped
 
 
 def execute_shell(cmd):
@@ -35,6 +50,9 @@ def execute_shell(cmd):
 
 def restart_servers(servers=""):
     return execute_shell("mscs restart {}".format(servers))
+
+def server_status(servers=""):
+    return execute_shell("mscs status {}".format(servers))
 
 
 # error handling
@@ -75,6 +93,7 @@ def main():
     echo_handler = MessageHandler(Filters.text, echo)
     dispatcher.add_handler(echo_handler)
 
+    @restricted
     def mscs_restart(bot, update):
         ret = restart_servers()
         logger.info("Server restarted by id {}".format(update.message.chat_id))
@@ -82,6 +101,16 @@ def main():
 
     mscs_restart_handler = CommandHandler("mscs_restart", mscs_restart)
     dispatcher.add_handler(mscs_restart_handler)
+
+    @restricted
+    def mscs_status(bot, update):
+        ret = server_status()
+        logger.info("Server status issued by id {}".format(update.message.chat_id))
+        logger.debug("{}".format(update.message))
+        bot.send_message(chat_id=update.message.chat_id, text="{}".format(ret))
+
+    mscs_status_handler = CommandHandler("mscs_status", mscs_status)
+    dispatcher.add_handler(mscs_status_handler)
 
     def unknown(bot, update):
         bot.send_message(chat_id=update.message.chat_id, text="Sorry, I didn't understand that command.")
