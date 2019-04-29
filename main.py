@@ -77,6 +77,7 @@ def main():
 
     def mscs_restart(bot, update):
         ret = restart_servers()
+        logger.info("Server restarted by id {}".format(update.message.chat_id))
         bot.send_message(chat_id=update.message.chat_id, text="{}".format(ret))
 
     mscs_restart_handler = CommandHandler("mscs_restart", mscs_restart)
