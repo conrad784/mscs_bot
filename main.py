@@ -25,10 +25,10 @@ def execute_shell(cmd):
     # WARNING, this should be sanitized beforehand as this is user input
     logger.debug(cmd_list)
     try:
-        out = subprocess.check_output(cmd)
-        return out
+        out = subprocess.check_output(cmd_list)
+        return out.decode("utf-8")
     except FileNotFoundError:
-        logger.error("binary not found")
+        logger.error("Binary not found")
     except subprocess.CalledProcessError:
         logger.error("Non-zero exit status")
 
