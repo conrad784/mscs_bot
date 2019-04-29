@@ -1,8 +1,7 @@
-# Telegram Bot for Searching a WG-Room on [wg-gesucht.de](www.wg-gesucht.de)
+# Telegram Bot for restarting Minecraft Servers handled with [mscs](https://github.com/MinecraftServerControl/mscs)
 
-This bot needs `> python 3.6`.
+This bot needs `python3`.
 
 1. install requirements
-1. initialize config files {token.txt, api_key}
-1. initialize sqlite3 database
-1. run with `python3 wg.py`
+1. initialize config files {token}
+1. run with `python3 main.py`
