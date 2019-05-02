@@ -54,6 +54,16 @@ send_typing_action = send_action(ChatAction.TYPING)
 send_upload_video_action = send_action(ChatAction.UPLOAD_VIDEO)
 send_upload_photo_action = send_action(ChatAction.UPLOAD_PHOTO)
 
+#----------------------------- Helper functions -----------------------------
+def get_text_from_message(message):
+    logger = logging.getLogger()
+    logger.debug("Got message to split: {}".format(message))
+    text = message.split(" ", 1)[1:]
+    logger.debug("Text output: {}".format(text))
+    if text:
+        return text[0]
+    else:
+        return ""
 #------------------------------- My functions -------------------------------
 def execute_shell(cmd):
     logger = logging.getLogger()
@@ -124,9 +134,10 @@ def main():
     @send_typing_action
     def mscs_restart(bot, update):
         msg = update.message
-        servers = msg.text.split(" ", 1)[1]
+        servers = get_text_from_message(msg.text)
+        logger.info("Server restarted by id {}".format(msg.from_user))
+        logger.debug("With message {}".format(msg.text))
         ret = restart_servers(servers)
-        logger.info("Server restarted by id {}".format(update.message.chat_id))
         bot.send_message(chat_id=update.message.chat_id, text="{}".format(ret))
 
     mscs_restart_handler = CommandHandler("mscs_restart", mscs_restart)
@@ -136,9 +147,9 @@ def main():
     @send_typing_action
     def mscs_status(bot, update):
         msg = update.message
+        servers = get_text_from_message(msg.text)
         logger.info("Server status issued by '{}'".format(msg.from_user))
         logger.debug("With message {}".format(msg.text))
-        server = msg.text.split(" ", 1)[1]
         ret = server_status(servers)
         bot.send_message(chat_id=update.message.chat_id, text="{}".format(ret))
 
