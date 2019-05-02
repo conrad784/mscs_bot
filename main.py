@@ -91,6 +91,8 @@ def main():
     # Add your other handlers here...
     # MessageHandler will handle messages and
     # CommandHandler will hanle /messages
+    # this means telegram.ext.filters are applied beforehand
+    # such that e.g. audio and video are not reaching the handler
 
     def stop_and_restart():
         """Gracefully stop the Updater and replace the current process with a new one"""
