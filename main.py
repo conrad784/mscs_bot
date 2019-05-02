@@ -10,30 +10,51 @@ from functools import wraps
 from telegram.ext import Updater
 from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler, Filters
+from telegram import ChatAction
 
 from secret import allowed_ids
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
+# read the telegram token
 with open("token", "r") as fd:
     token = fd.readline().strip()
 
 LIST_OF_ADMINS = list(allowed_ids.values())
 logging.info("List of admins: {}".format(LIST_OF_ADMINS))
 
+
+#------------------------------- Telegram wrapper functions -------------------------------
 def restricted(func):
     @wraps(func)
     def wrapped(update, context, *args, **kwargs):
+        logger = logging.getLogger()
         user_id = context.effective_user.id
+        logger.debug("Getting restricted call by {}".format(user_id))
         if user_id not in LIST_OF_ADMINS:
-            logger = logging.getLogger()
             logger.info("Unauthorized access denied for {}.".format(user_id))
             return
         return func(update, context, *args, **kwargs)
     return wrapped
 
 
+def send_action(action):
+    """Sends `action` while processing func command."""
+    def decorator(func):
+        @wraps(func)
+        def command_func(*args, **kwargs):
+            bot, update = args
+            bot.send_chat_action(chat_id=update.effective_message.chat_id, action=action)
+            return func(bot, update, **kwargs)
+        return command_func
+    return decorator
+
+send_typing_action = send_action(ChatAction.TYPING)
+send_upload_video_action = send_action(ChatAction.UPLOAD_VIDEO)
+send_upload_photo_action = send_action(ChatAction.UPLOAD_PHOTO)
+
+#------------------------------- My functions -------------------------------
 def execute_shell(cmd):
     logger = logging.getLogger()
     cmd_list = cmd.strip().split()
@@ -61,12 +82,15 @@ def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
 
 
+#--------------------------- main function with all handlers ----------------------------
 def main():
     logger = logging.getLogger()
     updater = Updater(token=token)
     dispatcher = updater.dispatcher
 
     # Add your other handlers here...
+    # MessageHandler will handle messages and
+    # CommandHandler will hanle /messages
 
     def stop_and_restart():
         """Gracefully stop the Updater and replace the current process with a new one"""
@@ -88,25 +112,32 @@ def main():
     dispatcher.add_handler(start_handler)
 
     def echo(bot, update):
+        logger.debug("Echoing '{}' to id: {}".format(update.message.text, update.message.chat_id))
         bot.send_message(chat_id=update.message.chat_id, text=update.message.text)
 
     echo_handler = MessageHandler(Filters.text, echo)
     dispatcher.add_handler(echo_handler)
 
+    @send_typing_action
     @restricted
     def mscs_restart(bot, update):
-        ret = restart_servers()
+        msg = update.message
+        servers = msg.text.split(" ", 1)[1]
+        ret = restart_servers(servers)
         logger.info("Server restarted by id {}".format(update.message.chat_id))
         bot.send_message(chat_id=update.message.chat_id, text="{}".format(ret))
 
     mscs_restart_handler = CommandHandler("mscs_restart", mscs_restart)
     dispatcher.add_handler(mscs_restart_handler)
 
+    @send_typing_action
     @restricted
     def mscs_status(bot, update):
-        ret = server_status()
-        logger.info("Server status issued by id {}".format(update.message.chat_id))
-        logger.debug("{}".format(update.message))
+        msg = update.message
+        logger.info("Server status issued by '{}'".format(msg.from_user))
+        logger.debug("With message {}".format(msg.text))
+        server = msg.text.split(" ", 1)[1]
+        ret = server_status(servers)
         bot.send_message(chat_id=update.message.chat_id, text="{}".format(ret))
 
     mscs_status_handler = CommandHandler("mscs_status", mscs_status)
