@@ -118,8 +118,8 @@ def main():
     echo_handler = MessageHandler(Filters.text, echo)
     dispatcher.add_handler(echo_handler)
 
-    @send_typing_action
     @restricted
+    @send_typing_action
     def mscs_restart(bot, update):
         msg = update.message
         servers = msg.text.split(" ", 1)[1]
@@ -130,8 +130,8 @@ def main():
     mscs_restart_handler = CommandHandler("mscs_restart", mscs_restart)
     dispatcher.add_handler(mscs_restart_handler)
 
-    @send_typing_action
     @restricted
+    @send_typing_action
     def mscs_status(bot, update):
         msg = update.message
         logger.info("Server status issued by '{}'".format(msg.from_user))
