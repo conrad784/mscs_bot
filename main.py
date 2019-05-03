@@ -4,6 +4,8 @@ import sys
 import os
 from threading import Thread
 import logging
+import pickle
+import time
 import subprocess
 from functools import wraps
 
@@ -65,6 +67,12 @@ def get_text_from_message(message):
     else:
         return ""
 #------------------------------- My functions -------------------------------
+class CommandCache(str):
+    def __init__(self, string):
+        super().__init__()
+        self.timestamp = time.time()
+
+
 def execute_shell(cmd):
     logger = logging.getLogger()
     cmd_list = cmd.strip().split()
@@ -83,7 +91,23 @@ def restart_servers(servers=""):
     return execute_shell("mscs restart {}".format(servers))
 
 def server_status(servers=""):
-    return execute_shell("mscs status {}".format(servers))
+    logger = logging.getLogger()
+    now = time.time()
+    try:
+        logger.debug("Trying to read cached command")
+        with open("/tmp/mscs_status.pickle", "rb") as f:
+            status = pickle.load(f)
+        if now-status.timestamp < 10:
+            logger.info("Cache valid")
+            ret = status
+        else:
+            logger.debug("Cache too old")
+            raise FileNotFoundError
+    except (FileNotFoundError, EOFError):
+        ret = execute_shell("mscs status {}".format(servers))
+        with open("/tmp/mscs_status.pickle", "wb") as f:
+            pickle.dump(CommandCache(ret), f)
+    return ret
 
 
 # error handling
