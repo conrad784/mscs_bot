@@ -1,0 +1,14 @@
+[Unit]
+Description=Telegram Bot to issue certain commands to mscs
+Requires=network.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mscs/git/mscs_bot
+ExecStart=/opt/mscs/git/mscs_bot/main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
