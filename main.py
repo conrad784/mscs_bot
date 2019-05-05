@@ -13,6 +13,7 @@ from telegram.ext import Updater
 from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler, Filters
 from telegram import ChatAction
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 from secret import allowed_ids
 
@@ -156,12 +157,25 @@ def main():
                                           filters=Filters.user(username='@conrad784')))
 
     def start(bot, update):
+        custom_keyboard = [["/mscs_status"],
+                           ['/mscs_restart']]
+        reply_markup = ReplyKeyboardMarkup(custom_keyboard)
         bot.send_message(chat_id=update.message.chat_id,
-                         text="This Bot is work in progress, expect it not to work!")
+                         text="This Bot is work in progress, expect it not to work!",
+                         reply_markup=reply_markup)
         logger.info("Started by: {}".format(update.message.from_user))
 
     start_handler = CommandHandler('start', start)
     dispatcher.add_handler(start_handler)
+
+    def stop(bot, update):
+        reply_markup = ReplyKeyboardRemove()
+        bot.send_message(chat_id=update.message.chat_id,
+                         text="Removing this fancy keyboard",
+                         reply_markup=reply_markup)
+
+    stop_handler = CommandHandler('stop', stop)
+    dispatcher.add_handler(stop_handler)
 
     def echo(bot, update):
         logger.debug("Echoing '{}' to id: {}".format(update.message.text, update.message.chat_id))
