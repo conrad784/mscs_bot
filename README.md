@@ -11,6 +11,7 @@ This bot needs `python3`.
 This bot should run with the least amount of permissions necessary as it takes user shell input.
 Therefore systemd user scripts can be used.
 * Enable lingering for user `loginctl enable-linger $USER` to run even if no user session is active.
+* Set `Storage=persistent` in `/etc/systemd/journald.conf` as in lingering mode the log output is gone if you re-login.
 * Copy `mscs_bot.service` to `~$USER/.config/systemd/user/`.
 * Reload systemd `systemctl --user daemon-reload`.
 * Then `systemctl --user enable --now mscs_bot.service`.
