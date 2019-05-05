@@ -88,7 +88,22 @@ def execute_shell(cmd):
 
 
 def restart_servers(servers=""):
-    return execute_shell("mscs restart {}".format(servers))
+    logger = logging.getLogger()
+    now = time.time()
+    try:
+        logger.debug("When was the last time this server was restarted")
+        with open("/tmp/mscs_restarted.pickle", "rb") as f:
+            last_restarted = pickle.load(f)
+        if now-last_restarted < 30:
+            logger.info("Restarted in the last 30s, not restarting.")
+            ret = "Restarted in the last 30s, not restarting."
+        else:
+            raise FileNotFoundError
+    except (FileNotFoundError, EOFError):
+        with open("/tmp/mscs_restarted.pickle", "wb") as f:
+            pickle.dump(now, f)
+        ret = execute_shell("mscs restart {}".format(servers))
+    return ret
 
 def server_status(servers=""):
     logger = logging.getLogger()
