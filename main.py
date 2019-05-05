@@ -158,6 +158,7 @@ def main():
     def start(bot, update):
         bot.send_message(chat_id=update.message.chat_id,
                          text="This Bot is work in progress, expect it not to work!")
+        logger.info("Started by: {}".format(update.message.from_user))
 
     start_handler = CommandHandler('start', start)
     dispatcher.add_handler(start_handler)
