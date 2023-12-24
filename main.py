@@ -15,7 +15,7 @@ from telegram.ext import MessageHandler, Filters
 from telegram import ChatAction
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 
-from secret import allowed_ids
+from secret import admin_ids, allowed_ids
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -24,7 +24,9 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 with open("token", "r") as fd:
     token = fd.readline().strip()
 
+LIST_OF_SUPERADMINS = list(admin_ids.values())
 LIST_OF_ADMINS = list(allowed_ids.values())
+logging.info("List of superadmins: {}".format(LIST_OF_SUPERADMINS))
 logging.info("List of admins: {}".format(LIST_OF_ADMINS))
 
 
@@ -36,6 +38,18 @@ def restricted(func):
         user_id = context.effective_user.id
         logger.debug("Getting restricted call by {}".format(user_id))
         if user_id not in LIST_OF_ADMINS:
+            logger.info("Unauthorized access denied for {}.".format(user_id))
+            return
+        return func(update, context, *args, **kwargs)
+    return wrapped
+
+def admin_restricted(func):
+    @wraps(func)
+    def wrapped(update, context, *args, **kwargs):
+        logger = logging.getLogger()
+        user_id = context.effective_user.id
+        logger.debug("Getting restricted call by {}".format(user_id))
+        if user_id not in LIST_OF_SUPERADMINS:
             logger.info("Unauthorized access denied for {}.".format(user_id))
             return
         return func(update, context, *args, **kwargs)
@@ -86,6 +100,10 @@ def execute_shell(cmd):
         logger.error("Binary not found")
     except subprocess.CalledProcessError:
         logger.error("Non-zero exit status")
+
+def execute_mscs_command(command=""):
+    logger = logging.getLogger()
+    return execute_shell("mscs {}".format(command))
 
 
 def restart_servers(servers=""):
@@ -183,6 +201,19 @@ def main():
 
     echo_handler = MessageHandler(Filters.text, echo)
     dispatcher.add_handler(echo_handler)
+
+
+    @admin_restricted
+    @send_typing_action
+    def mscs_command(bot, update):
+        msg = update.message
+        command = get_text_from_message(msg.text)
+        logger.info("Server command received from id {} with command {}".format(msg.from_user, msg.text))
+        ret = execute_mscs_command(command)
+        bot.send_message(chat_id=update.message.chat_id, text="{}".format(ret))
+
+    mscs_command_handler = CommandHandler("mscs_command", mscs_command)
+    dispatcher.add_handler(mscs_command_handler)
 
     @restricted
     @send_typing_action
